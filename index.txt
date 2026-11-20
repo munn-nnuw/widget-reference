@@ -1,0 +1,11 @@
+PinxAI ウィジェット相談室 公開資料索引 v0.2
+
+初めてのウィジェットを設計するための非公式の資料です。各ファイルは、この索引と同じフォルダにあります。サンプルごとの利用条件・確認状況を本文で確認してください。
+
+仕様と登録欄
+widget-reference.txt — JSXタグ、登録欄、起動、下書き、状態の引き継ぎ、試験時の切り分け。
+
+サンプル
+sample-location-card.txt — v0.1。確定した現在地を表示。PinxAI実機は未確認。
+sample-draft-action.txt — v0.1。ボタンで行動文を下書きに追記。PinxAI実機は未確認。
+sample-keepsake-count.txt — v0.1。記念品の個数を返答間で引き継ぐ。PinxAI実機は未確認。
