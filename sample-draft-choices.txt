@@ -1,0 +1,81 @@
+PinxAI ウィジェットサンプル投稿書式 v0.1
+
+【概要】
+サンプル名：行動候補から下書き
+何をするか：AIが出した行動候補のうち一つをボタンで下書きに入れる。
+提供者の表示名：ウィジェット相談室
+元の作品・投稿・配布ページ（公開URL、任意）：なし
+対象の版（版番号・日付・固定リンクのいずれか）：0.1
+
+【掲載・利用の希望】
+索引への掲載（可／不可）：可
+資料の転載・ミラー（可／不可／条件付き）：リンクによる紹介可
+コードや本文の改変・再配布（可／不可／条件付き）：自分のPinxAI作品に合わせた改変・設置可。サンプル原稿の再配布は個別確認。
+AIが回答時にサンプルを参照する利用（可／不可／条件付き）：可
+適用するライセンス、条件、必要な表記があれば記載：上記の通り。モデルの訓練用途は対象外。
+
+【設置】
+表示する場面と位置：固定イントロ後、提案できる行動がある返答の末尾
+ウィジェット名／関数名：行動候補から下書き／DraftChoices
+常時有効の設定／トリガーキーワード：空いている作品でオン／設定なし
+ウィジェット以外の変更・依存する既存設定（なければ「なし」）：なし
+タグで受け取る値（意味・型。初期値と欠落時の扱いも必要に応じて）：choices は異なる行動文の配列。最大3件。欠落や空配列では候補を表示しない。
+
+【AI用プロンプト】
+固定イントロ以外、次に選べる具体的な行動があるときだけ、本文の末尾に <DraftChoices choices={["周囲を調べる", "店主に尋ねる"]} /> の形のタグを一つコード枠外に出す。choices は状況に合う短い行動文1〜3件。重複させない。例文を毎回使わない。候補表示・下書きを行動の成立として扱わない。利用者が実際に送信した最新の文を読み、その場の状況で結果を描く。
+
+【プレビュー用タグ】
+<DraftChoices choices={["周囲を調べる", "店主に尋ねる"]} />
+
+【コード】
+function DraftChoices({ choices }) {
+  const usable = Array.isArray(choices)
+    ? choices.filter(value => typeof value === 'string').map(value => value.trim()).filter(Boolean)
+    : [];
+  const options = [...new Set(usable)].slice(0, 3);
+  const [state, setState] = useState('ready');
+  const busy = useRef(false);
+
+  async function choose(text) {
+    if (busy.current) return;
+    busy.current = true;
+    setState('pending');
+    try {
+      const result = await pinx.chat.insertText(text);
+      if (result?.ok) {
+        setState('done');
+        return;
+      }
+    } catch {
+      // 入力欄が使えない場合も下の表示を使う。
+    }
+    busy.current = false;
+    setState('error');
+  }
+
+  if (!options.length) return <p>現在の行動候補はありません。</p>;
+
+  return (
+    <section aria-label="行動候補">
+      <ul>
+        {options.map(option => (
+          <li key={option}>
+            <button type="button" onClick={() => choose(option)} disabled={state === 'pending' || state === 'done'}>
+              {option}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p role="status">
+        {state === 'done' && '下書きに入りました。確認して送信してください。'}
+        {state === 'error' && '入力欄を確認して、もう一度試してください。'}
+      </p>
+    </section>
+  );
+}
+
+【再現・確認】
+試す入力と操作：2候補のうち片方を押す。送信前に下書きを編集する。入力欄が使えない画面で押した後、使用可能な場面でも試す。
+期待する結果：選んだ文が一度だけ入る。押した時点で物語が進まず、送った文が扱われる。挿入失敗に成功表示は出ない。
+実際に確認した場所・日付・結果（未確認ならその旨）：PinxAI実機は未確認。
+任意の補足（失敗例、対処、既知の制限、画像など）：固定文を挿入する入門例は sample-draft-action.txt。ここでは候補を返答ごとに受け取る。

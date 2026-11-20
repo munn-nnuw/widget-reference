@@ -1,0 +1,66 @@
+PinxAI ウィジェットサンプル投稿書式 v0.1
+
+【概要】
+サンプル名：簡単な所持金計算
+何をするか：確定した収支を同じ取引IDで一度だけ計上し、単一通貨の残高を表示する。
+提供者の表示名：ウィジェット相談室
+元の作品・投稿・配布ページ（公開URL、任意）：なし
+対象の版（版番号・日付・固定リンクのいずれか）：0.1
+
+【掲載・利用の希望】
+索引への掲載（可／不可）：可
+資料の転載・ミラー（可／不可／条件付き）：リンクによる紹介可
+コードや本文の改変・再配布（可／不可／条件付き）：自分のPinxAI作品に合わせた改変・設置可。サンプル原稿の再配布は個別確認。
+AIが回答時にサンプルを参照する利用（可／不可／条件付き）：可
+適用するライセンス、条件、必要な表記があれば記載：上記の通り。モデルの訓練用途は対象外。
+
+【設置】
+表示する場面と位置：固定イントロ後のAI返答末尾
+ウィジェット名／関数名：簡単な所持金計算／WalletLedger
+常時有効の設定／トリガーキーワード：空いている作品でオン／設定なし
+ウィジェット以外の変更・依存する既存設定（なければ「なし」）：なし
+タグで受け取る値（意味・型。初期値と欠落時の扱いも必要に応じて）：before は今回の取引前残高、entries は今回確定の {id,delta} 配列。空は収支なし。
+
+【AI用プロンプト】
+固定イントロ以外の各AI返答末尾に <WalletLedger before={10} entries={[{id:"trade-1",delta:-3}]} /> の形のタグを一つコード枠外に出す。例は事実化しない。before は今回の取引前残高。新規開始時の初期値は0、以後は直近の確定結果を継ぐ。entries は今回の本文で受け渡しが成立した取引だけ。受取は正、支払いは負の整数。同じ取引には同じidを使い、済んだ取引は次のタグへ再送しない。提示、未払い、予定、引用の金額は含めない。収支なしは entries={[]}。残高や取引が確定できないときは当該属性を省き、0を推測しない。
+
+【プレビュー用タグ】
+<WalletLedger before={10} entries={[{id:"trade-1",delta:-3}]} />
+
+【コード】
+function WalletLedger({ before, entries }) {
+  if (!Number.isSafeInteger(before) || before < 0 || !Array.isArray(entries)) {
+    return <p>所持金は不明です。</p>;
+  }
+
+  const transactions = new Map();
+  for (const entry of entries) {
+    if (!entry || typeof entry.id !== 'string' || !entry.id.trim() ||
+        !Number.isSafeInteger(entry.delta) || !entry.delta) {
+      return <p>所持金は不明です。</p>;
+    }
+    if (transactions.has(entry.id) && transactions.get(entry.id) !== entry.delta) {
+      return <p>同じ取引の金額が一致しません。</p>;
+    }
+    transactions.set(entry.id, entry.delta);
+  }
+
+  let balance = before;
+  for (const delta of transactions.values()) {
+    balance += delta;
+    if (!Number.isSafeInteger(balance)) {
+      return <p>今回の取引後の所持金を確定できません。</p>;
+    }
+  }
+  if (balance < 0) {
+    return <p>今回の取引後の所持金を確定できません。</p>;
+  }
+
+  return <p>所持金 {balance} 枚</p>;
+}
+
+【再現・確認】
+試す入力と操作：before=10 から3の支払い。続けて、同じ取引IDの重複、次の返答の収支なし、残高欠落を試す。
+期待する結果：重複しても残高7。次の返答は before=7・空配列で7。値が欠けたときは不明。
+実際に確認した場所・日付・結果（未確認ならその旨）：PinxAI実機は未確認。
+任意の補足（失敗例、対処、既知の制限、画像など）：コードが一度だけにまとめるのは同じタグ内の重複。返答をまたいだ再送を避ける規則はAI用プロンプトで管理する。

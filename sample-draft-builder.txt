@@ -1,0 +1,93 @@
+PinxAI ウィジェットサンプル投稿書式 v0.1
+
+【概要】
+サンプル名：選択から下書き文を作る
+何をするか：二つの選択を一文にまとめ、利用者の操作で下書きに入れる。
+提供者の表示名：ウィジェット相談室
+元の作品・投稿・配布ページ（公開URL、任意）：なし
+対象の版（版番号・日付・固定リンクのいずれか）：0.1
+
+【掲載・利用の希望】
+索引への掲載（可／不可）：可
+資料の転載・ミラー（可／不可／条件付き）：リンクによる紹介可
+コードや本文の改変・再配布（可／不可／条件付き）：自分のPinxAI作品に合わせた改変・設置可。サンプル原稿の再配布は個別確認。
+AIが回答時にサンプルを参照する利用（可／不可／条件付き）：可
+適用するライセンス、条件、必要な表記があれば記載：上記の通り。モデルの訓練用途は対象外。
+
+【設置】
+表示する場面と位置：固定イントロ後、訪問先の候補が実際に判明している場面の返答末尾
+ウィジェット名／関数名：選択から下書き文を作る／DraftBuilder
+常時有効の設定／トリガーキーワード：空いている作品でオン／設定なし
+ウィジェット以外の変更・依存する既存設定（なければ「なし」）：なし
+タグで受け取る値（意味・型。初期値と欠落時の扱いも必要に応じて）：places は既知の候補名の配列。目的はコードの選択肢から選ぶ。
+
+【AI用プロンプト】
+固定イントロ以外、主人公が選べる具体的な訪問先が判明した場面で、返答末尾に <DraftBuilder places={["広場", "工房"]} /> の形のタグを一つコード枠外に出す。places に入れるのは主人公が知っている候補だけ。例を事実にしない。行き先や目的を選ぶだけでは移動を成立させない。送信された最新の移動希望を受け、道のりや立ち入り条件を踏まえて描く。実際に到着したときだけ現在地を更新する。
+
+【プレビュー用タグ】
+<DraftBuilder places={["広場", "工房"]} />
+
+【コード】
+function DraftBuilder({ places }) {
+  const values = Array.isArray(places)
+    ? places.filter(value => typeof value === 'string').map(value => value.trim()).filter(Boolean)
+    : [];
+  const options = [...new Set(values)];
+  const purposes = ['話を聞く', '周囲を調べる'];
+  const [place, setPlace] = useState('');
+  const [purpose, setPurpose] = useState('');
+  const [state, setState] = useState('ready');
+  const busy = useRef(false);
+  const selectedPlace = options.includes(place) ? place : '';
+  const draft = selectedPlace && purpose ? selectedPlace + 'へ向かい、' + purpose + '。' : '';
+
+  async function insertDraft() {
+    if (!draft || busy.current) return;
+    busy.current = true;
+    setState('pending');
+    try {
+      const result = await pinx.chat.insertText(draft);
+      if (result?.ok) {
+        setState('done');
+        return;
+      }
+    } catch {
+      // 入力欄が使えない場合も下の表示を使う。
+    }
+    busy.current = false;
+    setState('error');
+  }
+
+  if (!options.length) return <p>訪問先の候補がありません。</p>;
+
+  return (
+    <section>
+      <p>
+        <label>行き先 <select value={selectedPlace} onChange={event => setPlace(event.target.value)}>
+          <option value="">選ぶ</option>
+          {options.map(name => <option key={name} value={name}>{name}</option>)}
+        </select></label>
+      </p>
+      <p>
+        <label>目的 <select value={purpose} onChange={event => setPurpose(event.target.value)}>
+          <option value="">選ぶ</option>
+          {purposes.map(name => <option key={name} value={name}>{name}</option>)}
+        </select></label>
+      </p>
+      {draft && <p>{draft}</p>}
+      <button type="button" onClick={insertDraft} disabled={!draft || state === 'pending' || state === 'done'}>
+        入力欄へ入れる
+      </button>
+      <p role="status">
+        {state === 'done' && '下書きに入りました。確認して送信してください。'}
+        {state === 'error' && '入力欄を確認して、もう一度試してください。'}
+      </p>
+    </section>
+  );
+}
+
+【再現・確認】
+試す入力と操作：行き先だけ選び、次に目的も選ぶ。表示された文を確認して挿入し、まだ送信しない。
+期待する結果：片方だけでは挿入ボタンが無効。両方を選ぶと表示される文が下書きに入る。選択・挿入だけでは移動しない。
+実際に確認した場所・日付・結果（未確認ならその旨）：PinxAI実機は未確認。
+任意の補足（失敗例、対処、既知の制限、画像など）：選択欄はこの画面の一時的な値。新しいタグから選んでいた候補が消えたら操作に使わない。

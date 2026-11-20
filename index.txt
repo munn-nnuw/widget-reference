@@ -1,11 +1,25 @@
-PinxAI ウィジェット相談室 公開資料索引 v0.2
+PinxAI ウィジェット相談室 公開資料索引 v0.3
 
 初めてのウィジェットを設計するための非公式の資料です。各ファイルは、この索引と同じフォルダにあります。サンプルごとの利用条件・確認状況を本文で確認してください。
 
 仕様と登録欄
 widget-reference.txt — JSXタグ、登録欄、起動、下書き、状態の引き継ぎ、試験時の切り分け。
+chat-and-info-reference.txt — チャットの仕組み、各プロンプト欄、INFOの出どころと置き換え、確認手順。
 
-サンプル
+サンプル　現在の状況を表示する
 sample-location-card.txt — v0.1。確定した現在地を表示。PinxAI実機は未確認。
+sample-info-card.txt — v0.1。日時・現在地のINFOカード。PinxAI実機は未確認。
+sample-character-status.txt — v0.1。複数の同行者と確定した現在状態を表示。PinxAI実機は未確認。
+
+サンプル　入力欄に下書きを入れる
 sample-draft-action.txt — v0.1。ボタンで行動文を下書きに追記。PinxAI実機は未確認。
+sample-draft-choices.txt — v0.1。AIが返答ごとに出す複数の行動候補から選択。PinxAI実機は未確認。
+sample-draft-builder.txt — v0.1。行き先と目的を選んで下書き文を組み立てる。PinxAI実機は未確認。
+sample-mode-command.txt — v0.1。表示用タブと確定モードを分け、変更希望を下書きに追記。PinxAI実機は未確認。
+
+サンプル　次の返答にも値や一覧を引き継ぐ
 sample-keepsake-count.txt — v0.1。記念品の個数を返答間で引き継ぐ。PinxAI実機は未確認。
+sample-inventory-list.txt — v0.1。所持品の増減と空・不明を区別した一覧。PinxAI実機は未確認。
+sample-wallet-ledger.txt — v0.1。一回分の収支から残高を計算。同一タグ内の取引重複を防ぐ。PinxAI実機は未確認。
+sample-task-list.txt — v0.1。引き受けた未完の約束・依頼と次の行動を表示。PinxAI実機は未確認。
+sample-facility-list.txt — v0.1。ダンジョンなどの施設を場所ごとに整理し、移設を引き継ぐ。PinxAI実機は未確認。

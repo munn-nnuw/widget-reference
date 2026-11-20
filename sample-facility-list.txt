@@ -1,0 +1,63 @@
+PinxAI ウィジェットサンプル投稿書式 v0.1
+
+【概要】
+サンプル名：場所ごとの施設一覧
+何をするか：確定した施設を、階層や施設のある場所ごとにまとめる。
+提供者の表示名：ウィジェット相談室
+元の作品・投稿・配布ページ（公開URL、任意）：なし
+対象の版（版番号・日付・固定リンクのいずれか）：0.1
+
+【掲載・利用の希望】
+索引への掲載（可／不可）：可
+資料の転載・ミラー（可／不可／条件付き）：リンクによる紹介可
+コードや本文の改変・再配布（可／不可／条件付き）：自分のPinxAI作品に合わせた改変・設置可。サンプル原稿の再配布は個別確認。
+AIが回答時にサンプルを参照する利用（可／不可／条件付き）：可
+適用するライセンス、条件、必要な表記があれば記載：上記の通り。モデルの訓練用途は対象外。
+
+【設置】
+表示する場面と位置：固定イントロ後、施設管理中のAI返答末尾
+ウィジェット名／関数名：場所ごとの施設一覧／FacilityList
+常時有効の設定／トリガーキーワード：空いている作品でオン／設定なし
+ウィジェット以外の変更・依存する既存設定（なければ「なし」）：なし
+タグで受け取る値（意味・型。初期値と欠落時の扱いも必要に応じて）：facilities は {id,name,place} の配列。place が空なら施設の存在だけが確定している。
+
+【AI用プロンプト】
+固定イントロ以外、施設管理中のAI返答末尾に <FacilityList facilities={[{id:"forge",name:"工房",place:"地下1階"},{id:"store",name:"倉庫",place:""}]} /> の形のタグを一つコード枠外に出す。facilities は現存が確定した全施設。id は同じ施設の固定文字列、name は名称、place は階層や地上の場所。所在だけ不明なら空文字。前回の確定一覧を継ぎ、設置・移設・撤去が本文で成立した行だけ更新する。改名・移設は同じid。例を事実化せず、予定だけで変更しない。確定した空は facilities={[]}、一覧不明は属性を省略。
+
+【プレビュー用タグ】
+<FacilityList facilities={[{id:"forge",name:"工房",place:"地下1階"},{id:"store",name:"倉庫",place:""}]} />
+
+【コード】
+function FacilityList({ facilities }) {
+  const valid = Array.isArray(facilities) && facilities.every(facility =>
+    facility && typeof facility.id === 'string' && facility.id.trim() &&
+    typeof facility.name === 'string' && facility.name.trim() && typeof facility.place === 'string'
+  ) && new Set(facilities.map(facility => facility.id)).size === facilities.length;
+
+  if (!valid) return <p>施設一覧は不明です。</p>;
+  if (!facilities.length) return <p>施設はありません。</p>;
+
+  const byPlace = new Map();
+  for (const facility of facilities) {
+    const place = facility.place.trim() || '所在未確認';
+    if (!byPlace.has(place)) byPlace.set(place, []);
+    byPlace.get(place).push(facility);
+  }
+
+  return (
+    <section aria-label="施設一覧">
+      {[...byPlace].map(([place, rooms]) => (
+        <div key={place}>
+          <strong>{place}</strong>
+          <ul>{rooms.map(room => <li key={room.id}>{room.name}</li>)}</ul>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+【再現・確認】
+試す入力と操作：所在不明の倉庫を表示し、本文で所在を確定する。次に工房の移設案と、実際の移設後を比べる。
+期待する結果：不明だった倉庫が場所の見出しへ移る。同じ工房は移設成立後だけ所属が変わり、二重に並ばない。
+実際に確認した場所・日付・結果（未確認ならその旨）：PinxAI実機は未確認。
+任意の補足（失敗例、対処、既知の制限、画像など）：行き先を選んだ操作や施設の設置予約では、一覧を変更しない。

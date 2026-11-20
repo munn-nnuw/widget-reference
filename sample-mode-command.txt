@@ -1,0 +1,82 @@
+PinxAI ウィジェットサンプル投稿書式 v0.1
+
+【概要】
+サンプル名：モードとコマンドの下書き
+何をするか：表示用タブと物語で確定したモードを分け、変更希望を入力欄へ入れる。
+提供者の表示名：ウィジェット相談室
+元の作品・投稿・配布ページ（公開URL、任意）：なし
+対象の版（版番号・日付・固定リンクのいずれか）：0.1
+
+【掲載・利用の希望】
+索引への掲載（可／不可）：可
+資料の転載・ミラー（可／不可／条件付き）：リンクによる紹介可
+コードや本文の改変・再配布（可／不可／条件付き）：自分のPinxAI作品に合わせた改変・設置可。サンプル原稿の再配布は個別確認。
+AIが回答時にサンプルを参照する利用（可／不可／条件付き）：可
+適用するライセンス、条件、必要な表記があれば記載：上記の通り。モデルの訓練用途は対象外。
+
+【設置】
+表示する場面と位置：固定イントロ後のAI返答末尾
+ウィジェット名／関数名：モードとコマンドの下書き／ModeCommand
+常時有効の設定／トリガーキーワード：空いている作品でオン／設定なし
+ウィジェット以外の変更・依存する既存設定（なければ「なし」）：なし
+タグで受け取る値（意味・型。初期値と欠落時の扱いも必要に応じて）：mode は現在確定している explore または rest。不明は属性なし。
+
+【AI用プロンプト】
+固定イントロ以外の各AI返答末尾に <ModeCommand mode="explore" /> の形のタグを一つコード枠外に出す。mode は確定した explore（探索）か rest（休息）。この見本の新規開始時は explore。以後は直近の確定値を継ぎ、不明なら属性を省く。最新の送信済み入力に独立行「!方針 探索」か「!方針 休息」が一つだけある場合に、状況に応じて希望を扱う。実際に方針変更が成立した返答から mode を変える。タブ操作、下書き、引用、過去入力、複数指示では変更しない。
+
+【プレビュー用タグ】
+<ModeCommand mode="explore" />
+
+【コード】
+function ModeCommand({ mode }) {
+  const labels = { explore: '探索', rest: '休息' };
+  const actual = mode === 'explore' || mode === 'rest' ? labels[mode] : '不明';
+  const [tab, setTab] = useState('status');
+  const [result, setResult] = useState('ready');
+  const busy = useRef(false);
+
+  async function requestMode(next) {
+    if (busy.current || mode === next) return;
+    busy.current = true;
+    setResult('pending');
+    try {
+      const reply = await pinx.chat.insertText('\n!方針 ' + labels[next]);
+      if (reply?.ok) {
+        setResult('done');
+        return;
+      }
+    } catch {
+      // 入力欄が使えない場合も下の表示を使う。
+    }
+    busy.current = false;
+    setResult('error');
+  }
+
+  return (
+    <section>
+      <button type="button" aria-pressed={tab === 'status'} onClick={() => setTab('status')}>状態</button>
+      <button type="button" aria-pressed={tab === 'settings'} onClick={() => setTab('settings')}>方針を選ぶ</button>
+      <p>確定している方針 {actual}</p>
+      {tab === 'settings' && (
+        <div>
+          {Object.keys(labels).map(key => (
+            <button type="button" key={key} onClick={() => requestMode(key)}
+              disabled={mode === key || result === 'pending' || result === 'done'}>
+              {labels[key]}の希望を入力欄へ
+            </button>
+          ))}
+        </div>
+      )}
+      <p role="status">
+        {result === 'done' && '下書きに入りました。確認して送信してください。'}
+        {result === 'error' && '入力欄を確認して、もう一度試してください。'}
+      </p>
+    </section>
+  );
+}
+
+【再現・確認】
+試す入力と操作：探索中に設定タブを開き、休息を押す。送信前、送信後に休息が成立した時、移動中ですぐ休めない時を確認する。
+期待する結果：タブ操作と下書きでは探索のまま。休息が実際に成立した返答だけ休息表示になる。
+実際に確認した場所・日付・結果（未確認ならその旨）：PinxAI実機は未確認。
+任意の補足（失敗例、対処、既知の制限、画像など）：タブは表示だけの一時状態。コマンドを送信するかは利用者が決める。
